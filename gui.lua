@@ -242,7 +242,7 @@ function GUI:Init()
     do
         local bf = CreateFrame("Frame", nil, f, BackdropTemplateMixin and "BackdropTemplate" or nil)
         bf:SetWidth(290)
-        bf:SetHeight(310)
+        bf:SetHeight(350)
         bf:SetBackdrop({
             bgFile = "Interface\\FrameGeneral\\UI-Background-Marble",
             edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
@@ -494,7 +494,7 @@ function GUI:Init()
 
             bf.GetBidMode = function()
                 if usegold:GetChecked() then
-                    return "GOLD", usegold.slide:GetValue()
+                    return "GOLD", usegold.slide:GetValue(), usegold.check:GetChecked()
                 end
 
                 if usepercent:GetChecked() then
@@ -505,10 +505,12 @@ function GUI:Init()
             local ensureone = function(self)
                 ensurechecked(self)
                 usegold.slide:Hide()
+                usegold.check:Hide()
                 usepercent.slide:Hide()
 
                 if usegold:GetChecked() then
                     usegold.slide:Show()
+                    usegold.check:Show()
                 end
 
                 if usepercent:GetChecked() then
@@ -577,7 +579,25 @@ function GUI:Init()
                     s:Hide()
         
                     b.slide = s
-                end                
+                end
+
+                -- support easy bid mode: using 100 as unit
+                do
+                    local tt = CreateFrame("CheckButton", nil, bf, "UICheckButtonTemplate")            
+                    tt.text = tt:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                    tt.text:SetPoint("RIGHT", tt, "Left", -10, 1)
+                    tt.text:SetText(L["EasyBidMode(100 as unit)"])
+                    tt:SetPoint("TOPLEFT", bf, 30 + tt.text:GetStringWidth(), -230)
+                    tt:SetScript("OnClick", function()
+                        if tt:GetChecked() then
+                            bf.bidmode.usegold.slide:SetValue(math.floor(bf.bidmode.usegold.slide:GetValue() / 100) * 100)
+                        end
+                    end)
+                    -- tt:SetChecked(true)
+                    b.check = tt
+                end
+
+
             end
 
             do
@@ -627,7 +647,7 @@ function GUI:Init()
 
         do
             local b = CreateFrame("CheckButton", nil, bf, "UICheckButtonTemplate")
-            b:SetPoint("TOPLEFT", bf, 15, -230)
+            b:SetPoint("TOPLEFT", bf, 15, -260)
     
             b.text = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
             b.text:SetPoint("LEFT", b, "RIGHT", 0, 1)
@@ -683,8 +703,8 @@ function GUI:Init()
                     return
                 end
 
-                local ask = tonumber(text)
-                if not ask then
+                local rawask = tonumber(text)
+                if not rawask then
                     return
                 end
 
@@ -692,9 +712,16 @@ function GUI:Init()
                 local bid = bidprice() / 10000
                 local item = currentitem()
 
-                if ask >= bid then
+                local realask
+                if ctx.easybid then
+                    realask = rawask * 100
+                else
+                    realask = rawask
+                end
+
+                if realask >= bid then
                     ctx.currentwinner = playerName
-                    ctx.currentprice = ask * 10000
+                    ctx.currentprice = realask * 10000
                     ctx.countdown = bf.countdown:GetValue()
                     
                     -- L["Bid price"]
@@ -794,12 +821,13 @@ function GUI:Init()
                         return
                     end
 
-                    local mode, inc = bf.GetBidMode()
+                    local mode, inc, easybid = bf.GetBidMode()
                     ctx = {
                         entry = bf.curEntry,
                         currentprice = bf.startprice:GetValue() * 10000,
                         currentwinner = nil,
                         mode = mode,
+                        easybid = easybid,
                         inc = inc,
                         countdown = bf.countdown:GetValue(),
                     }
@@ -2376,4 +2404,4 @@ StaticPopupDialogs["RAIDLEDGER_DELETE_ITEM"] = {
     whileDead = 1,
     hideOnEscape = 1,
     multiple = 0,
-}}
+}
