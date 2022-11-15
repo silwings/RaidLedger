@@ -16,14 +16,14 @@ end
 do
     local t = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     t:SetText(L["Feedback"] .. "  farmer1992@gmail.com")
-    t:SetPoint("TOPLEFT", f, 20, -50)
+    t:SetPoint("TOPLEFT", f, 50, -15)
 end
 
 RegEvent("ADDON_LOADED", function()
     -- dropbox filter
     do
         local t = CreateFrame("Frame", nil, f, "UIDropDownMenuTemplate")
-        t:SetPoint("TOPLEFT", f, 5, -100)
+        t:SetPoint("TOPLEFT", f, 5, -50)
 
         local tt = t:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         tt:SetPoint("BOTTOMLEFT", t, "TOPLEFT", 20, 0)
@@ -62,7 +62,7 @@ RegEvent("ADDON_LOADED", function()
         local AUTOADDLOOT_TYPE_DISABLE = 2
 
         local t = CreateFrame("Frame", nil, f, "UIDropDownMenuTemplate")
-        t:SetPoint("TOPLEFT", f, 150, -100)
+        t:SetPoint("TOPLEFT", f, 150, -50)
 
         local tt = t:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         tt:SetPoint("BOTTOMLEFT", t, "TOPLEFT", 20, 0)
@@ -111,7 +111,7 @@ RegEvent("ADDON_LOADED", function()
         local POPUPOUTSTANDING_TYPE_DISABLE = 2
 
         local t = CreateFrame("Frame", nil, f, "UIDropDownMenuTemplate")
-        t:SetPoint("TOPLEFT", f, 300, -100)
+        t:SetPoint("TOPLEFT", f, 300, -50)
 
         local tt = t:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         tt:SetPoint("BOTTOMLEFT", t, "TOPLEFT", 20, 0)
@@ -148,8 +148,88 @@ RegEvent("ADDON_LOADED", function()
             end
         end)
 
-        UIDropDownMenu_SetSelectedValue(t, Database:GetConfigOrDefault("popupoutstanding", POPUPOUTSTANDING_TYPE_RAID))
+        UIDropDownMenu_SetSelectedValue(t, Database:GetConfigOrDefault("popupoutstanding", 100))
     end
+
+    -- default bid options
+    do
+        local t = CreateFrame("Frame", nil, f, "UIDropDownMenuTemplate")
+        t:SetPoint("TOPLEFT", f, 5, -100)
+
+        local tt = t:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        tt:SetPoint("BOTTOMLEFT", t, "TOPLEFT", 20, 0)
+        tt:SetText(L["DefaultBidStartingPrice"])
+
+        local onclick = function(self)
+            UIDropDownMenu_SetSelectedValue(t, self.value)
+            Database:SetConfig("defaultbidstartingprice", self.value)
+        end
+
+        UIDropDownMenu_Initialize(t, function()
+            do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = "100"
+                info.value = 100
+                info.func = onclick
+                UIDropDownMenu_AddButton(info)
+            end
+
+            do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = "500"
+                info.value = 500
+                info.func = onclick
+                UIDropDownMenu_AddButton(info)
+            end
+
+            do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = "1000"
+                info.value = 1000
+                info.func = onclick
+                UIDropDownMenu_AddButton(info)
+            end
+        end)
+
+        UIDropDownMenu_SetSelectedValue(t, Database:GetConfigOrDefault("defaultbidstartingprice", 500))
+    end
+
+    do
+        local t = CreateFrame("Frame", nil, f, "UIDropDownMenuTemplate")
+        t:SetPoint("TOPLEFT", f, 150, -100)
+
+        local tt = t:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        tt:SetPoint("BOTTOMLEFT", t, "TOPLEFT", 20, 0)
+        tt:SetText(L["DefaultBidIncrement"])
+
+        local onclick = function(self)
+            UIDropDownMenu_SetSelectedValue(t, self.value)
+            Database:SetConfig("defaultbidincrement", self.value)
+        end
+
+        UIDropDownMenu_Initialize(t, function()
+            do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = "50"
+                info.value = 50
+                info.func = onclick
+                UIDropDownMenu_AddButton(info)
+            end
+
+            do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = "100"
+                info.value = 100
+                info.func = onclick
+                UIDropDownMenu_AddButton(info)
+            end
+
+
+        end)
+
+        UIDropDownMenu_SetSelectedValue(t, Database:GetConfigOrDefault("defaultbidincrement", 100))
+    end
+
 
     do
         local b = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
@@ -230,6 +310,7 @@ RegEvent("ADDON_LOADED", function()
 
     end
 
+    
     local editDebitTemplate
     do
         local t = CreateFrame("Frame", nil, f, BackdropTemplateMixin and "BackdropTemplate" or nil)

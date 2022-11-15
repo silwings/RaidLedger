@@ -338,6 +338,10 @@ function GUI:Init()
                 if itemTexture then
                     bf.itemTexture:SetTexture(itemTexture)
                 end
+
+                bf.startprice:SetValue(Database:GetConfigOrDefault("defaultbidstartingprice", 500))
+                bf.bidmode.usegold.slide:SetValue(Database:GetConfigOrDefault("defaultbidincrement", 100))
+
             end
 
         end
@@ -450,7 +454,7 @@ function GUI:Init()
                 tooltip:SetOwner(UIParent, "ANCHOR_NONE")
             end)
 
-            s:SetValue(100)
+            s:SetValue(Database:GetConfigOrDefault("defaultbidstartingprice",500))
 
             bf.startprice = s
         end
@@ -522,6 +526,8 @@ function GUI:Init()
                 b:SetScript("OnClick", ensureone)
 
                 usegold = b
+                l.usegold = b
+
 
                 do
                     local tooltip = self.commtooltip
@@ -567,7 +573,7 @@ function GUI:Init()
                         tooltip:SetOwner(UIParent, "ANCHOR_NONE")
                     end)
 
-                    s:SetValue(50)
+                    s:SetValue(Database:GetConfigOrDefault("defaultbidincrement", 100))
                     s:Hide()
         
                     b.slide = s
@@ -584,6 +590,7 @@ function GUI:Init()
                 b:SetScript("OnClick", ensureone)
 
                 usepercent = b
+                l.usepercent = b
 
                 do
                     local s = CreateFrame("Slider", nil, bf, "OptionsSliderTemplate")
@@ -615,6 +622,7 @@ function GUI:Init()
             end
 
             ensureone()
+            bf.bidmode = l
         end
 
         do
@@ -2368,4 +2376,4 @@ StaticPopupDialogs["RAIDLEDGER_DELETE_ITEM"] = {
     whileDead = 1,
     hideOnEscape = 1,
     multiple = 0,
-}
+}}
