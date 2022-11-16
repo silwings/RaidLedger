@@ -549,7 +549,7 @@ do
             local item = currentitem()
 
             SendRaidMessage(L["Start bid"] .. " " .. item .. " " .. L["Starting price"] .. " >>" .. GetMoneyStringL(ctx.currentprice) .. "<< " .. (ctx.pause and "" or L["Time left"] .. " " .. (SECOND_ONELETTER_ABBR:format(ctx.countdown))))
-
+            if ctx.easybid then SendRaidMessage(L["Easy bid mode on, you can use 100 as bid unit"]) end
             ctx.timer = C_Timer.NewTicker(1, function()
                 if ctx.pause then
                     return
