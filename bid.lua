@@ -359,14 +359,14 @@ do
             local tt = CreateFrame("CheckButton", nil, bf, "UICheckButtonTemplate")            
             tt.text = tt:CreateFontString(nil, "OVERLAY", "GameFontNormal")
             tt.text:SetPoint("RIGHT", tt, "Left", -10, 1)
-            tt.text:SetText(L["EasyBidMode(100 as unit)"])
+            tt.text:SetText(L["SmartBidMode(autofit bid price)"])
             tt:SetPoint("TOPLEFT", bf, 30 + tt.text:GetStringWidth(), -230)
             tt:SetScript("OnClick", function()
                 if tt:GetChecked() then
                     bf.bidmode.usegold.slide:SetValue(math.floor(bf.bidmode.usegold.slide:GetValue() / 100) * 100)
                 end
             end)
-            -- tt:SetChecked(true)
+            tt:SetChecked(true)
             b.check = tt
         end
 
@@ -424,12 +424,12 @@ do
 
     b.text = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     b.text:SetPoint("LEFT", b, "RIGHT", 0, 1)
-    b.text:SetText("/RA")
+    b.text:SetText(L["always in raid warning channel"])
 
     b:SetScript("OnClick", function() 
         Database:SetConfig("bfusera", b:GetChecked())
     end)
-    b:SetChecked(Database:GetConfigOrDefault("bfusera", true))            
+    b:SetChecked(Database:GetConfigOrDefault("bfusera", false))
 
     bf.usera = b
 end
@@ -463,8 +463,8 @@ do
         return bid
     end
 
-    local SendRaidMessage = function(text)
-        if bf.usera:GetChecked() and (UnitIsGroupLeader('player') or UnitIsGroupAssistant('player')) then
+    local SendRaidMessage = function(text, userw)
+        if userw and (UnitIsGroupLeader('player') or UnitIsGroupAssistant('player')) then
             SendChatMessage(text, "RAID_WARNING")
         else
             SendChatMessage(text, "RAID")
@@ -485,9 +485,26 @@ do
         local bid = bidprice() / 10000
         local item = currentitem()
 
+        local function smartbid_autofit(bid, rawask)
+            local realask = rawask
+            while(true)
+            do
+                if realask < bid then 
+                    realask = realask * 10
+                elseif realask > bid * 3 then
+                    if realask == rawask then break end
+                    realask = math.floor(realask / 10) 
+                    break
+                else
+                    break
+                end
+            end
+            return realask
+        end 
+
         local realask
-        if ctx.easybid then
-            realask = rawask * 100
+        if ctx.smartbid then
+            realask = smartbid_autofit(bid, rawask)
         else
             realask = rawask
         end
@@ -499,9 +516,9 @@ do
             bf:AddBidWatch(playerName, realask *10000)
             bf:UpdateBidWatchList()
             -- L["Bid price"]
-            SendRaidMessage(L["Bid accept"] .. " " .. item .. " " .. L["Current price"] .. " >>" .. GetMoneyStringL(ctx.currentprice) .. "<< ".. (ctx.pause and "" or L["Time left"] .. " " .. (SECOND_ONELETTER_ABBR:format(ctx.countdown))))
+            SendRaidMessage("[" .. L["Bid accept"] .. "] " .. playerName .. " " .. GetMoneyStringL(ctx.currentprice) .. ">>" ..item, bf.usera:GetChecked())
         else
-            SendRaidMessage(L["Bid denied"] .. " " .. item .. " " .. L["Must bid higher than"] .. " " .. GetMoneyStringL(bid * 10000))
+            SendRaidMessage("[" .. L["Bid denied"] .. "] " .. L["Must bid higher than"] .. " " .. GetMoneyStringL(bid * 10000), bf.usera:GetChecked())
         end
         
     end
@@ -532,13 +549,13 @@ do
         end)
 
         b:SetScript("OnClick", function() 
-            local mode, inc, easybid = bf.GetBidMode()
+            local mode, inc, smartbid = bf.GetBidMode()
             ctx = {
                 entry = bf.curEntry,
                 currentprice = bf.startprice:GetValue() * 10000,
                 currentwinner = nil,
                 mode = mode,
-                easybid = easybid,
+                smartbid = smartbid,
                 inc = inc,
                 countdown = bf.countdown:GetValue(),
                 bidwatch = {},
@@ -548,8 +565,8 @@ do
 
             local item = currentitem()
 
-            SendRaidMessage(L["Start bid"] .. " " .. item .. " " .. L["Starting price"] .. " >>" .. GetMoneyStringL(ctx.currentprice) .. "<< " .. (ctx.pause and "" or L["Time left"] .. " " .. (SECOND_ONELETTER_ABBR:format(ctx.countdown))))
-            if ctx.easybid then SendRaidMessage(L["Easy bid mode on, you can use 100 as bid unit"]) end
+            SendRaidMessage(L["Start bid"] .. " " .. item .. " " .. L["Starting price"] .. " >>" .. GetMoneyStringL(ctx.currentprice) .. "<< " .. (ctx.pause and "" or L["Time left"] .. " " .. (SECOND_ONELETTER_ABBR:format(ctx.countdown))),true)
+            if ctx.smartbid then SendRaidMessage(L["Smart bid mode on, your bid price will be auto fitted"], bf.usera:GetChecked()) end
             ctx.timer = C_Timer.NewTicker(1, function()
                 if ctx.pause then
                     return
@@ -563,14 +580,14 @@ do
                     ctx.timer:Cancel()
 
                     if ctx.currentwinner then
-                        SendRaidMessage(item .. " " .. L["Hammer Price"] .. " >>" .. GetMoneyStringL(ctx.currentprice) .. "<< " .. L["Winner"] .. " " .. ctx.currentwinner)
+                        SendRaidMessage(L["Hammer"] .. item .. " " .. GetMoneyStringL(ctx.currentprice) .. ">> " .. ctx.currentwinner, bf.usera:GetChecked())
                         ctx.entry["beneficiary"] = ctx.currentwinner
                         ctx.entry["cost"] = ctx.currentprice / 10000
                         ctx.entry["lock"] = true
                         bf:CloseBidWatch()
                         GUI:UpdateLootTableFromDatabase()
                     else
-                        SendRaidMessage(item .. " " .. L["is bought in"])
+                        SendRaidMessage(item .. " " .. L["is bought in"],bf.usera:GetChecked())
                         bf:CancelBid()
                     end
 
@@ -579,13 +596,9 @@ do
                     return
                 end
 
-                local sendalert = ctx.countdown <= 5
-                -- sendalert = sendalert or (ctx.countdown <= 15 and (ctx.countdown % 5 == 0))
-                -- sendalert = sendalert or (ctx.countdown <= 30 and (ctx.countdown % 10 == 0))
-                -- sendalert = sendalert or (ctx.countdown % 30 == 0)
-
+                local sendalert = ctx.countdown <= 10 and ctx.countdown % 2 == 0
                 if sendalert then
-                    SendRaidMessage(" " .. L["Current price"] .. " >>" .. GetMoneyStringL(ctx.currentprice) .. "<< " .. L["Time left"] .. " " .. (SECOND_ONELETTER_ABBR:format(ctx.countdown)))
+                    SendRaidMessage("[" .. L["Bid Countdown"] .."] " .. GetMoneyStringL(ctx.currentprice) .. " >>" ..  string.format("%d", ctx.countdown/2) .. "<<",bf.usera:GetChecked())
                 end
             end)
             bf:Hide()
@@ -595,7 +608,7 @@ do
             if ctx then
                 ctx.timer:Cancel()
                 bf:CloseBidWatch()
-                SendRaidMessage(L["Bid canceled"], "RAID")
+                SendRaidMessage(L["Bid canceled"], bf.usera:GetChecked())
             end
             ctx = nil
         end
