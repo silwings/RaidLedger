@@ -599,7 +599,7 @@ do
 
                 local sendalert = ctx.countdown <= 10 and ctx.countdown % 2 == 0
                 if sendalert then
-                    SendRaidMessage("[" .. L["Bid Countdown"] .."] ".. item .." " .. GetMoneyStringL(ctx.currentprice) .. " >>" ..  string.format("%d", ctx.countdown/2) .. "<<", true)
+                    SendRaidMessage("[" .. L["Bid Countdown"] ..string.format("%d", ctx.countdown/2).."] ".. item .." >> " .. GetMoneyStringL(ctx.currentprice), true)
                 end
             end)
             bf:Hide()
