@@ -1495,6 +1495,8 @@ L["You can send messages to this channel when you are in an instance only"] = "�
 L["DefaultBidStartingPrice"] = "默认起拍价"
 L["DefaultBidIncrement"] = "默认加价"
 L["EasyBidMode(100 as unit)"] = "简略出价(以100为单位)"
+L["Easy bid mode on, you can use 100 as bid unit"] = "简略出价模式开启，出价时可直接以100G为单位"
+L["Current Bid"] = "拍卖中"
 
 elseif locale == 'zhTW' then
 L["# line starts with # will be ignored"] = "# 以 # 開頭的行自動被忽略"

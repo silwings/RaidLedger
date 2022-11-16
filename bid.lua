@@ -557,7 +557,7 @@ do
 
                 ctx.countdown = ctx.countdown - 1
 
-                -- bf.UpdateButtonCountdown()
+                bf:UpdateBidCountDown()
 
                 if ctx.countdown <= 0 then
                     ctx.timer:Cancel()
@@ -634,7 +634,7 @@ do
             end)
         end
 
-        -- title
+        -- bid watch title and countdown
         
         local h = f:CreateTexture(nil, "ARTWORK")
         h:SetTexture("Interface/DialogFrame/UI-DialogBox-Header")
@@ -667,18 +667,15 @@ do
         itemtext:SetSize(20, 20)
         itemtext:EnableMouse(true)
         itemtext:RegisterForClicks("AnyUp")
-        -- local _, itemLink = GetItemInfo(item)
-        -- if itemLink then
-        --     itemtext.link = itemLink
-        --     itemtext.text:SetText(itemLink)
-        --     itemtext:SetWidth(math.min(230, itemtext.text:GetStringWidth() + 45))
-        -- else
-        --     itemtext.link = nil
-        --     itemtext.text:SetText(item)
-        -- end
         itemtext:SetScript("OnClick", function()
             ChatEdit_InsertLink(itemtext.link)
         end)
+
+        local hc = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        hc:SetText(string.format("(%d)s", 20))
+        hc:SetPoint("TOPRIGHT", itemtext, 40, 0)
+        hc:Show()
+        f.header.countdown = hc
 
         itemtext:SetScript("OnEnter", function()
             if itemtext.link then
@@ -726,13 +723,16 @@ do
                 ["DoCellUpdate"] = bidWatchPriceUpdate,
             }
         }, 6, 30, nil, f)
-        st.frame:SetPoint("TOPLEFT", f, "TOPLEFT", 30, -50)
+        st.frame:SetPoint("TOPLEFT", f, "TOPLEFT", 30, -60)
         st.scrollframe:SetScript("OnHide",function() end)
         st.scrollframe:Hide()
         st.frame:SetBackdropColor(0.1,0.1,0.1,0.5)
         st:Show()
         f.watchlist = st
         bf.bidwatch = f
+        bf.UpdateBidCountDown = function(self)
+            bf.bidwatch.header.countdown:SetText(string.format("(%d)s", ctx.countdown))
+        end
         bf.UpdateBidWatchList = function(self)
             -- construct scrollingtable's data from ctx
             local data = {}
