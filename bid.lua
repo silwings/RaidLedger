@@ -562,6 +562,7 @@ do
             }
 
             bf:OpenBidWatch()
+            ADDONSELF.gui:Hide()
 
             local item = currentitem()
 
@@ -598,7 +599,7 @@ do
 
                 local sendalert = ctx.countdown <= 10 and ctx.countdown % 2 == 0
                 if sendalert then
-                    SendRaidMessage("[" .. L["Bid Countdown"] .."] " .. GetMoneyStringL(ctx.currentprice) .. " >>" ..  string.format("%d", ctx.countdown/2) .. "<<",bf.usera:GetChecked())
+                    SendRaidMessage("[" .. L["Bid Countdown"] .."] ".. item .." " .. GetMoneyStringL(ctx.currentprice) .. " >>" ..  string.format("%d", ctx.countdown/2) .. "<<", true)
                 end
             end)
             bf:Hide()
