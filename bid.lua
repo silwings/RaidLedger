@@ -791,9 +791,9 @@ do
             end
             self.bidwatch:Show()
             -- test data
-            self:AddBidWatch("包你满意呀",6000000)
-            self:AddBidWatch("陆战之王",7000000)
-            self:AddBidWatch("自然骚",5000000)
+            -- self:AddBidWatch("包你满意呀",6000000)
+            -- self:AddBidWatch("陆战之王",7000000)
+            -- self:AddBidWatch("自然骚",5000000)
             self:UpdateBidWatchList()
         end
         bf.CloseBidWatch = function(self)
