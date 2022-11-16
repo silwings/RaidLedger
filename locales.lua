@@ -1495,6 +1495,7 @@ L["You can send messages to this channel when you are in an instance only"] = "�
 L["DefaultBidStartingPrice"] = "默认起拍价"
 L["DefaultBidIncrement"] = "默认加价"
 L["SmartBidMode(autofit bid price)"] = "智能出价(自动补全)"
+L["BatchBidMode(same item in one bid)"] = "合并拍卖(相同物品一起拍卖)"
 L["Smart bid mode on, your bid price will be auto fitted"] = "智能出价模式开启,你的出价将自动补全"
 L["Current Bid"] = "拍卖中"
 L["always in raid warning channel"] = "总是用RW频道喊话"

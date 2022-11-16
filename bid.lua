@@ -15,7 +15,7 @@ function BID:Init()
 local GUI = ADDONSELF.gui
 local bf = CreateFrame("Frame", nil, GUI.mainframe, BackdropTemplateMixin and "BackdropTemplate" or nil)
 bf:SetWidth(290)
-bf:SetHeight(350)
+bf:SetHeight(400)
 bf:SetBackdrop({
     bgFile = "Interface\\FrameGeneral\\UI-Background-Marble",
     edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
@@ -54,10 +54,10 @@ do
 
     bf.itemTexture = itemTexture
 
-    local counttext = bf:CreateFontString(nil, 'OVERLAY')
-    counttext:SetFontObject('NumberFontNormal')
-    counttext:SetPoint('BOTTOMRIGHT', itemTexture, -3, 3)
-    counttext:SetJustifyH('RIGHT')
+    local stackCounTtext = bf:CreateFontString(nil, 'OVERLAY')
+    stackCounTtext:SetFontObject('NumberFontNormal')
+    stackCounTtext:SetPoint('BOTTOMRIGHT', itemTexture, -3, 3)
+    stackCounTtext:SetJustifyH('RIGHT')
 
     local itemtext = CreateFrame("Button", nil, bf)
     itemtext.text = itemtext:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -86,12 +86,40 @@ do
         tooltip:SetOwner(itemtext, "ANCHOR_NONE")
     end)
 
-    bf.SetItem = function(item, count)
+    local sameItemCountText = bf:CreateFontString(nil, 'OVERLAY')
+    sameItemCountText:SetFontObject('NumberFontNormal')
+    sameItemCountText:SetPoint('RIGHT', itemtext, 50, 3)
+    sameItemCountText:SetTextColor(1,0,0)
+    sameItemCountText:SetTextHeight(20)
+    sameItemCountText:SetJustifyH('RIGHT')
 
-        counttext:SetText("1")
+    bf.SetItem = function(self, item, entry, entryIndex)
+        self.curEntry = entry
+        self.sameItemCount = 1
+        self.sameItemEntry = {}
+        self.stackCount = entry["detail"]["count"]
+        -- calculate item count
+        for idx, entry in pairs(Database:GetCurrentLedger()["items"]) do
+            if entry.detail then
+                if entry.detail.item == item and not (entryIndex == idx) then
+                    self.sameItemCount = self.sameItemCount + 1
+                    table.insert(self.sameItemEntry,1,entry)
+                end
+            end
+        end
+        if self.sameItemCount >1 then
+            sameItemCountText:SetText("X"..self.sameItemCount)
+            bf.batchBidCheck:SetChecked(true)
+            bf.batchBidCheck.text:SetTextColor(unpack(bf.batchBidCheck.text.defaultTextColor))
+        else
+            sameItemCountText:SetText("")
+            bf.batchBidCheck:SetChecked(false)
+            bf.batchBidCheck.text:SetTextColor(.5,.5,.5)
+        end
+        stackCounTtext:SetText("1")
 
-        if tonumber(count) then
-            counttext:SetText(count)
+        if tonumber(self.stackCount) then
+            stackCounTtext:SetText(self.stackCount)
         end
         itemTexture:SetTexture(134400)
 
@@ -178,7 +206,7 @@ do
         s.Text:SetText(SecondsToTime(value))
     end)
 
-    s:SetValue(20)
+    s:SetValue(30)
 
     bf.countdown = s
 end
@@ -267,11 +295,11 @@ do
 
     bf.GetBidMode = function()
         if usegold:GetChecked() then
-            return "GOLD", usegold.slide:GetValue(), usegold.check:GetChecked()
+            return "GOLD", usegold.slide:GetValue(), usegold.check:GetChecked(), bf.batchBidCheck:GetChecked()
         end
 
         if usepercent:GetChecked() then
-            return "PERCENT", usepercent.slide:GetValue()
+            return "PERCENT", usepercent.slide:GetValue(), bf.batchBidCheck:GetChecked()
         end                
     end
 
@@ -354,7 +382,7 @@ do
             b.slide = s
         end
 
-        -- support easy bid mode: using 100 as unit
+        -- support smart bid mode: autofit bid price
         do
             local tt = CreateFrame("CheckButton", nil, bf, "UICheckButtonTemplate")            
             tt.text = tt:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -368,6 +396,25 @@ do
             end)
             tt:SetChecked(true)
             b.check = tt
+        end
+
+        -- support batch bid mode: sell same item in one bid
+        do
+            local tt = CreateFrame("CheckButton", nil, bf, "UICheckButtonTemplate")        
+            tt.text = tt:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            tt.text:SetPoint("RIGHT", tt, "Left", -10, 1)
+            tt.text:SetText(L["BatchBidMode(same item in one bid)"])
+            tt:SetPoint("TOPLEFT", bf, 30 + tt.text:GetStringWidth(), -260)
+            tt:SetScript("OnClick", function()
+                if bf.sameItemCount < 2 then
+                    tt:SetChecked(false)
+                end
+            end)
+            tt:SetChecked(false)
+            local r,g,b,a = tt.text:GetTextColor()
+            tt.text.defaultTextColor = {r,g,b,a}
+            tt.text:SetTextColor(.5,.5,.5)
+            bf.batchBidCheck = tt
         end
 
 
@@ -420,7 +467,7 @@ end
 
 do
     local b = CreateFrame("CheckButton", nil, bf, "UICheckButtonTemplate")
-    b:SetPoint("TOPLEFT", bf, 15, -260)
+    b:SetPoint("TOPLEFT", bf, 15, -290)
 
     b.text = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     b.text:SetPoint("LEFT", b, "RIGHT", 0, 1)
@@ -439,9 +486,10 @@ do
 
     local currentitem = function()
         local entry = bf.curEntry
-        local item = entry["detail"]["item"] or entry["detail"]["displayname"]                
-        item = item .. " (" .. (entry["detail"]["count"] or 1) .. ")"
-        return item
+        local item = entry["detail"]["item"] or entry["detail"]["displayname"]
+        if bf.sameItemCount > 1 then return item .. " (X" .. bf.sameItemCount .. ")" end 
+        if bf.stackCount > 1 then return item .. " (X" .. bf.stackCount .. ")" end
+        return item                     
     end
  
 
@@ -549,13 +597,16 @@ do
         end)
 
         b:SetScript("OnClick", function() 
-            local mode, inc, smartbid = bf.GetBidMode()
+            local mode, inc, smartbid, batchbid = bf.GetBidMode()
             ctx = {
                 entry = bf.curEntry,
+                sameItemCount = bf.sameItemCount,
+                sameItemEntry = bf.sameItemEntry,
                 currentprice = bf.startprice:GetValue() * 10000,
                 currentwinner = nil,
                 mode = mode,
                 smartbid = smartbid,
+                batchbid = batchbid,
                 inc = inc,
                 countdown = bf.countdown:GetValue(),
                 bidwatch = {},
@@ -566,7 +617,7 @@ do
 
             local item = currentitem()
 
-            SendRaidMessage(L["Start bid"] .. " " .. item .. " " .. L["Starting price"] .. " >>" .. GetMoneyStringL(ctx.currentprice) .. "<< " .. (ctx.pause and "" or L["Time left"] .. " " .. (SECOND_ONELETTER_ABBR:format(ctx.countdown))),true)
+            SendRaidMessage("[" .. L["Start bid"] .. "] " .. item .." " .. L["Starting price"] .. " >>" .. GetMoneyStringL(ctx.currentprice) .. "<< ",true)
             if ctx.smartbid then SendRaidMessage(L["Smart bid mode on, your bid price will be auto fitted"], bf.usera:GetChecked()) end
             ctx.timer = C_Timer.NewTicker(1, function()
                 if ctx.pause then
@@ -581,10 +632,24 @@ do
                     ctx.timer:Cancel()
 
                     if ctx.currentwinner then
-                        SendRaidMessage(L["Hammer"] .. item .. " " .. GetMoneyStringL(ctx.currentprice) .. ">> " .. ctx.currentwinner, bf.usera:GetChecked())
+                        SendRaidMessage(L["Hammer"] .. ctx.entry.detail.item .. " " .. GetMoneyStringL(ctx.currentprice) .. ">> " .. ctx.currentwinner, bf.usera:GetChecked())
                         ctx.entry["beneficiary"] = ctx.currentwinner
                         ctx.entry["cost"] = ctx.currentprice / 10000
                         ctx.entry["lock"] = true
+                        -- deal with batch bid mode
+                        if ctx.batchbid then
+                            for i=1,#ctx.sameItemEntry do
+                                local secondWinner = ctx.bidwatch[#ctx.bidwatch - i]
+                                if secondWinner == nil then break end
+                                Print_Dump(ctx.sameItemEntry)
+                                Print_Dump(ctx.bidwatch)
+                                local entry2 = ctx.sameItemEntry[i]
+                                SendRaidMessage(L["Hammer"] .. entry2.detail.item .. " " .. GetMoneyStringL(secondWinner.bidPrice) .. ">> " .. secondWinner.playerName, bf.usera:GetChecked())
+                                entry2["beneficiary"] = secondWinner.playerName
+                                entry2["cost"] = secondWinner.bidPrice / 10000
+                                entry2["lock"] = true
+                            end 
+                        end
                         bf:CloseBidWatch()
                         GUI:UpdateLootTableFromDatabase()
                     else
@@ -783,7 +848,7 @@ do
             local _, itemLink = GetItemInfo(item)
             if itemLink then
                 self.bidwatch.itemtext.link = itemLink
-                self.bidwatch.itemtext.text:SetText(itemLink)
+                self.bidwatch.itemtext.text:SetText(item)
                 self.bidwatch.itemtext:SetWidth(math.min(230, itemtext.text:GetStringWidth() + 45))
             else
                 self.bidwatch.itemtext.link = nil

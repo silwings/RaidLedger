@@ -672,12 +672,12 @@ function GUI:Init()
             end
 
             local entry = self:GetParent().curEntry
+            local entryIndex = self:GetParent().entryIdx
 
             local item = entry["detail"]["item"] or entry["detail"]["displayname"]
 
             if item and item ~= "" then
-                bidframe.SetItem(item, entry["detail"]["count"])
-                bidframe.curEntry = entry
+                bidframe:SetItem(item, entry, entryIndex)
                 bidframe:Show()
             end
         end
@@ -884,7 +884,8 @@ function GUI:Init()
             cellFrame.textBox:SetText(detail["displayname"] or "")
         end)
 
-        local beneficiaryUpdate = CreateCellUpdate(function(cellFrame, entry)
+        local beneficiaryUpdate = CreateCellUpdate(function(cellFrame, entry, idx)
+            cellFrame.entryIdx = idx
             if not cellFrame.textBox then
                 cellFrame.textBox = CreateFrame("EditBox", nil, cellFrame, "InputBoxTemplate,AutoCompleteEditBoxTemplate")
                 cellFrame.textBox:SetPoint("CENTER", cellFrame, "CENTER", -20, 0)
