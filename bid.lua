@@ -571,6 +571,7 @@ do
                         GUI:UpdateLootTableFromDatabase()
                     else
                         SendRaidMessage(item .. " " .. L["is bought in"])
+                        bf:CancelBid()
                     end
 
                     ctx = nil
@@ -637,15 +638,20 @@ do
         
         local h = f:CreateTexture(nil, "ARTWORK")
         h:SetTexture("Interface/DialogFrame/UI-DialogBox-Header")
-        h:SetWidth(500)
+        h:SetWidth(250)
         h:SetHeight(64)
         h:SetPoint("TOP", f, 0, 12)
         f.header = h
+        local ht = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        ht:SetText(L["Current Bid"])
+        ht:SetPoint("TOP", f, 0, 0)
+        ht:Show()
+        f.header.text = ht
         
         local itemTexture = f:CreateTexture()
         itemTexture:SetTexCoord(0, 1, 0, 1)
         itemTexture:Show()
-        itemTexture:SetPoint("TOPLEFT", f.header, 150, -10)
+        itemTexture:SetPoint("TOPLEFT", f, 30, -30)
         itemTexture:SetWidth(20)
         itemTexture:SetHeight(20) 
         itemTexture:SetTexture(134400) -- question mark
@@ -721,6 +727,9 @@ do
             }
         }, 6, 30, nil, f)
         st.frame:SetPoint("TOPLEFT", f, "TOPLEFT", 30, -50)
+        st.scrollframe:SetScript("OnHide",function() end)
+        st.scrollframe:Hide()
+        st.frame:SetBackdropColor(0.1,0.1,0.1,0.5)
         st:Show()
         f.watchlist = st
         bf.bidwatch = f
@@ -736,6 +745,7 @@ do
                 })
             end            
             self.bidwatch.watchlist:SetData(data)
+            self.bidwatch:SetHeight(self.bidwatch.watchlist.frame:GetHeight()+80)
         end
         bf.AddBidWatch = function(self, playerName, bidPrice)
            local found = false
@@ -767,9 +777,9 @@ do
             end
             self.bidwatch:Show()
             -- test data
-            -- self:AddBidWatch("包你满意呀",6000000)
-            -- self:AddBidWatch("陆战之王",7000000)
-            -- self:AddBidWatch("自然骚",5000000)
+            self:AddBidWatch("包你满意呀",6000000)
+            self:AddBidWatch("陆战之王",7000000)
+            self:AddBidWatch("自然骚",5000000)
             self:UpdateBidWatchList()
         end
         bf.CloseBidWatch = function(self)
