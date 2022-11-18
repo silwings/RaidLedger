@@ -85,6 +85,7 @@ do
         tooltip:Hide()
         tooltip:SetOwner(itemtext, "ANCHOR_NONE")
     end)
+    bf.itemtext = itemtext
 
     local sameItemCountText = bf:CreateFontString(nil, 'OVERLAY')
     sameItemCountText:SetFontObject('NumberFontNormal')
@@ -92,18 +93,24 @@ do
     sameItemCountText:SetTextColor(1,0,0)
     sameItemCountText:SetTextHeight(20)
     sameItemCountText:SetJustifyH('RIGHT')
+    bf.itemtext.sameItemCountText = sameItemCountText
+
 
     bf.SetItem = function(self, item, entry, entryIndex)
         self.curEntry = entry
-        self.sameItemCount = 1
+        self.sameItemCount = 0
         self.sameItemEntry = {}
         self.stackCount = entry["detail"]["count"]
+        -- if you start a bid, then unlock the item automatically
+        self.curEntry.lock = false
         -- calculate item count
         for idx, entry in pairs(Database:GetCurrentLedger()["items"]) do
             if entry.detail then
-                if entry.detail.item == item and not (entryIndex == idx) then
+                if entry.detail.item == item and not entry.lock then
                     self.sameItemCount = self.sameItemCount + 1
-                    table.insert(self.sameItemEntry,1,entry)
+                    if not (entryIndex == idx) then 
+                        table.insert(self.sameItemEntry,1,entry)
+                    end
                 end
             end
         end
@@ -142,6 +149,7 @@ do
 
         bf.startprice:SetValue(Database:GetConfigOrDefault("defaultbidstartingprice", 500))
         bf.bidmode.usegold.slide:SetValue(Database:GetConfigOrDefault("defaultbidincrement", 100))
+        GUI:UpdateLootTableFromDatabase()
 
     end
 
@@ -409,6 +417,11 @@ do
                 if bf.sameItemCount < 2 then
                     tt:SetChecked(false)
                 end
+                if tt:GetChecked() then 
+                    bf.itemtext.sameItemCountText:Show()
+                else
+                    bf.itemtext.sameItemCountText:Hide()
+                end
             end)
             tt:SetChecked(false)
             local r,g,b,a = tt.text:GetTextColor()
@@ -487,7 +500,7 @@ do
     local currentitem = function()
         local entry = bf.curEntry
         local item = entry["detail"]["item"] or entry["detail"]["displayname"]
-        if bf.sameItemCount > 1 then return item .. " (X" .. bf.sameItemCount .. ")" end 
+        if bf.batchBidCheck:GetChecked() and bf.sameItemCount > 1 then return item .. " (X" .. bf.sameItemCount .. ")" end 
         if bf.stackCount > 1 then return item .. " (X" .. bf.stackCount .. ")" end
         return item                     
     end
@@ -561,12 +574,26 @@ do
             ctx.currentwinner = playerName
             ctx.currentprice = realask * 10000
             ctx.countdown = bf.countdown:GetValue()
-            bf:AddBidWatch(playerName, realask *10000)
+            bf:AddBidWatch(playerName, realask * 10000)
             bf:UpdateBidWatchList()
-            -- L["Bid price"]
             SendRaidMessage("[" .. L["Bid accept"] .. "] " .. playerName .. " " .. GetMoneyStringL(ctx.currentprice) .. ">>" ..item, bf.usera:GetChecked())
         else
-            SendRaidMessage("[" .. L["Bid denied"] .. "] " .. L["Must bid higher than"] .. " " .. GetMoneyStringL(bid * 10000), bf.usera:GetChecked())
+            -- when batch bid, dont reject the same price
+            if ctx.batchbid and (realask * 10000) == ctx.currentprice then 
+                -- if top price already more than sameItemCount, still should reject
+                local bidCount = 0
+                for i=1,#ctx.bidwatch do
+                    if ctx.bidwatch[i].bidPrice < ctx.currentprice then break end
+                    bidCount = bidCount + 1
+                end
+                if bidCount < ctx.sameItemCount then 
+                    bf:AddBidWatch(playerName, realask * 10000)
+                    bf:UpdateBidWatchList()
+                    SendRaidMessage("[" .. L["Bid accept"] .. "] " .. playerName .. " " .. GetMoneyStringL(ctx.currentprice) .. ">>" ..item, bf.usera:GetChecked())
+                end
+            else
+                SendRaidMessage("[" .. L["Bid denied"] .. "] " .. L["Must bid higher than"] .. " " .. GetMoneyStringL(bid * 10000), bf.usera:GetChecked())
+            end
         end
         
     end
@@ -642,8 +669,6 @@ do
                             for i=1,#ctx.sameItemEntry do
                                 local secondWinner = ctx.bidwatch[#ctx.bidwatch - i]
                                 if secondWinner == nil then break end
-                                Print_Dump(ctx.sameItemEntry)
-                                Print_Dump(ctx.bidwatch)
                                 local entry2 = ctx.sameItemEntry[i]
                                 SendRaidMessage(L["Hammer"] .. entry2.detail.item .. " " .. GetMoneyStringL(secondWinner.bidPrice) .. ">> " .. secondWinner.playerName, bf.usera:GetChecked())
                                 entry2["beneficiary"] = secondWinner.playerName
