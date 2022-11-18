@@ -111,13 +111,14 @@ local COST_TYPE_MUL_AVG = "MUL_AVG"
 function db:AddEntry(type, detail, beneficiary, cost, costtype)
     local ledger = self:GetCurrentLedger()
 
-    table.insert(ledger["items"], {
+    table.insert(ledger["items"], 1, {
         -- id = #ledger["items"] + 1,
         type = type,
         detail = detail or {},
         beneficiary = beneficiary or "",
         cost = cost or 0,
         costtype = costtype or "GOLD",
+        bidtimes = 0,
     })
 
     self:OnLedgerItemsChange()

@@ -636,6 +636,7 @@ do
                         ctx.entry["beneficiary"] = ctx.currentwinner
                         ctx.entry["cost"] = ctx.currentprice / 10000
                         ctx.entry["lock"] = true
+                        ctx.entry.bidtimes = ctx.entry.bidtimes and ctx.entry.bidtimes + 1 or 1
                         -- deal with batch bid mode
                         if ctx.batchbid then
                             for i=1,#ctx.sameItemEntry do
@@ -654,7 +655,9 @@ do
                         GUI:UpdateLootTableFromDatabase()
                     else
                         SendRaidMessage(item .. " " .. L["is bought in"],bf.usera:GetChecked())
+                        ctx.entry.bidtimes = ctx.entry.bidtimes and ctx.entry.bidtimes + 1 or 1
                         bf:CancelBid()
+                        GUI:UpdateLootTableFromDatabase()
                     end
 
                     ctx = nil

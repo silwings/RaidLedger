@@ -913,6 +913,11 @@ function GUI:Init()
                 icon:SetTexture("Interface\\GroupFrame\\UI-Group-MasterLooter")
                 icon:SetPoint("CENTER", -1, 0)
                 icon:SetSize(15, 15)
+
+                local t = cellFrame.bidButton:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                t:SetPoint("LEFT", icon, "RIGHT", 8, 0)
+                t:Show()
+                cellFrame.bidButton.bidtimes = t
             end
 
             cellFrame.textBox.customTextChangedCallback = function(t)
@@ -936,6 +941,11 @@ function GUI:Init()
 
             if entry["type"] == "CREDIT" then
                 cellFrame.bidButton:Show()
+                if entry.bidtimes and entry.bidtimes > 0 then 
+                    cellFrame.bidButton.bidtimes:SetText(string.format("(%d)", entry.bidtimes))
+                else 
+                    cellFrame.bidButton.bidtimes:SetText("")
+                end
             end
         end)
 
@@ -1127,7 +1137,7 @@ function GUI:Init()
             },
             {
                 ["name"] = L["Beneficiary"],
-                ["width"] = 150,
+                ["width"] = 180,
                 ["DoCellUpdate"] = beneficiaryUpdate,
             },
             {
