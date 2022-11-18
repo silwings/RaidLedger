@@ -578,18 +578,37 @@ do
             bf:UpdateBidWatchList()
             SendRaidMessage("[" .. L["Bid accept"] .. "] " .. playerName .. " " .. GetMoneyStringL(ctx.currentprice) .. ">>" ..item, bf.usera:GetChecked())
         else
-            -- when batch bid, dont reject the same price
-            if ctx.batchbid and (realask * 10000) == ctx.currentprice then 
-                -- if top price already more than sameItemCount, still should reject
-                local bidCount = 0
-                for i=1,#ctx.bidwatch do
-                    if ctx.bidwatch[i].bidPrice < ctx.currentprice then break end
-                    bidCount = bidCount + 1
+            if ctx.batchbid and realask >= bf.startprice:GetValue() then 
+                Print_Dump(ctx.bidwatch)
+                local accept = false
+                local lowestBidPrice = 0
+                if ctx.bidwatch[ctx.sameItemCount] then 
+                    lowestBidPrice = ctx.bidwatch[ctx.sameItemCount].bidPrice
                 end
-                if bidCount < ctx.sameItemCount then 
+                Print("lowestBidPrice:" .. lowestBidPrice)
+                local playerBidPrice = bf:GetPlayerBidPrice(playerName) and bf:GetPlayerBidPrice(playerName) or 0
+                if realask * 10000 > playerBidPrice then
+                    if realask * 10000 > lowestBidPrice then 
+                        accept = true
+                    elseif realask * 10000 == lowestBidPrice then
+                        Print_Dump(ctx.bidwatch)
+                        local bidCount = 0
+                        for i=1,#ctx.bidwatch do
+                            if ctx.bidwatch[i].bidPrice >= lowestBidPrice then
+                                bidCount = bidCount + 1
+                            end
+                        end
+                        Print("bid count:" .. bidCount)
+                        if bidCount < ctx.sameItemCount then accept = true end
+                    end
+                end
+                if accept then 
+                    ctx.countdown = bf.countdown:GetValue()
                     bf:AddBidWatch(playerName, realask * 10000)
                     bf:UpdateBidWatchList()
-                    SendRaidMessage("[" .. L["Bid accept"] .. "] " .. playerName .. " " .. GetMoneyStringL(ctx.currentprice) .. ">>" ..item, bf.usera:GetChecked())
+                    SendRaidMessage("[" .. L["Bid accept"] .. "] " .. playerName .. " " .. GetMoneyStringL(realask * 10000) .. ">>" ..item, bf.usera:GetChecked())
+                else
+                    SendRaidMessage("[" .. L["Bid denied"] .. "] ", bf.usera:GetChecked())
                 end
             else
                 SendRaidMessage("[" .. L["Bid denied"] .. "] " .. L["Must bid higher than"] .. " " .. GetMoneyStringL(bid * 10000), bf.usera:GetChecked())
@@ -844,7 +863,7 @@ do
             -- construct scrollingtable's data from ctx
             local data = {}
             for i=1,#ctx.bidwatch do
-                 table.insert(data, 1, {
+                 table.insert(data, {
                     ["cols"] = {
                         {["playerName"]=ctx.bidwatch[i]["playerName"]},
                         {["bidPrice"]=ctx.bidwatch[i]["bidPrice"]},
@@ -866,9 +885,16 @@ do
                 table.insert(ctx.bidwatch, {["playerName"]=playerName, ["bidPrice"]=bidPrice})
             end
             local function priceSort(a, b)
-                return a["bidPrice"] < b["bidPrice"]
+                return a["bidPrice"] >= b["bidPrice"]
             end
             table.sort(ctx.bidwatch, priceSort)
+        end
+        bf.GetPlayerBidPrice = function(self, playerName)
+            for i=1,#ctx.bidwatch do
+                if ctx.bidwatch[i]["playerName"] == playerName then
+                    return ctx.bidwatch[i].bidPrice
+                end
+            end
         end
         bf.OpenBidWatch = function(self)
             local item = currentitem()
